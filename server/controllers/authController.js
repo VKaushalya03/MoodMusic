@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { OAuth2Client } = require("google-auth-library");
+const axios = require("axios");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.registerUser = async (req, res) => {
@@ -83,15 +84,18 @@ exports.getUserProfile = async (req, res) => {
 };
 
 exports.googleLogin = async (req, res) => {
-  const { token } = req.body; // Token from Frontend
+  const { token } = req.body; // This is the Access Token (ya29...)
 
   try {
-    // 1. Verify token with Google
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const { name, email, picture, sub } = ticket.getPayload(); // sub is Google's User ID
+    // 1. Instead of verifyIdToken, we fetch user info using the Access Token
+    const googleResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+
+    const { sub, name, email, picture } = googleResponse.data;
 
     // 2. Check if user exists in our DB
     let user = await User.findOne({ email });
@@ -109,13 +113,12 @@ exports.googleLogin = async (req, res) => {
         email: email,
         googleId: sub,
         avatar: picture,
-        // No password needed
+        // No password needed for Google users
       });
       await user.save();
     }
 
     // 3. Generate OUR App Token (JWT)
-    // This is crucial: We treat them like a normal logged-in user now
     const payload = { user: { id: user.id } };
     jwt.sign(
       payload,
