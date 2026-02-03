@@ -12,13 +12,11 @@ import { Register } from "./pages/Register";
 import { Login } from "./pages/Login";
 import { Discover } from "./pages/Discover";
 import { Profile } from "./pages/Profile";
+import { Library } from "./pages/Library";
 
 function App() {
-  // ✅ FIX: Check token immediately during initialization
-  // (!! converts the string to a boolean true/false)
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => !!localStorage.getItem("token"),
-  );
+  // ✅ FIX: Removed 'setIsAuthenticated' because it was unused
+  const [isAuthenticated] = useState(() => !!localStorage.getItem("token"));
 
   return (
     <Router>
@@ -44,6 +42,12 @@ function App() {
         <Route
           path="/profile"
           element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+        />
+
+        {/* Library Route */}
+        <Route
+          path="/library"
+          element={isAuthenticated ? <Library /> : <Navigate to="/login" />}
         />
 
         <Route

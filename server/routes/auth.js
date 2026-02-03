@@ -5,19 +5,21 @@ const {
   loginUser,
   getUserProfile,
   googleLogin,
+  updatePassword, // <--- Import
+  forgotPassword, // <--- Import
+  resetPassword, // <--- Import
 } = require("../controllers/authController");
 const auth = require("../middleware/authMiddleware");
 
-// @route   POST /api/auth/register
+// Existing Routes
 router.post("/register", registerUser);
-
-// @route   POST /api/auth/login
 router.post("/login", loginUser);
-
-// @route   POST /api/auth/google
 router.post("/google", googleLogin);
-
-// @route   GET /api/auth/me (Protected)
 router.get("/me", auth, getUserProfile);
+
+// ✅ NEW ROUTES
+router.put("/updatepassword", auth, updatePassword); // Protected (Profile)
+router.post("/forgotpassword", forgotPassword); // Public (Login Screen)
+router.put("/resetpassword/:resetToken", resetPassword); // Public (Email Link)
 
 module.exports = router;

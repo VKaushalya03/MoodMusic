@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Compass, Library, User, LogOut } from "lucide-react";
-import logo from "../assets/SVG.png"; // Ensure this path is correct
+import { Compass, Library, User, LogOut } from "lucide-react";
+import logo from "../assets/SVG.png";
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -9,7 +9,7 @@ export const Sidebar = () => {
   return (
     <aside className="w-64 bg-[#121212] border-r border-[#ffffff0d] flex flex-col h-screen fixed left-0 top-0 z-20">
       {/* Logo */}
-      <div className="h-24 flex items-center px-6 gap-3">
+      <div className="h-24 flex items-center px-8 gap-3">
         <div className="w-8 h-8 flex items-center justify-center">
           <img
             src={logo}
@@ -51,22 +51,6 @@ export const Sidebar = () => {
           </div>
         </Link>
       </nav>
-
-      {/* Logout Area */}
-      <div className="p-6 border-t border-[#ffffff0d] mb-20">
-        {" "}
-        {/* Margin bottom for player */}
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            window.location.href = "/login";
-          }}
-          className="flex items-center gap-3 text-red-500 hover:text-red-400 transition-colors pl-4"
-        >
-          <LogOut size={20} />
-          <span className="font-medium text-sm">Logout</span>
-        </button>
-      </div>
     </aside>
   );
 };

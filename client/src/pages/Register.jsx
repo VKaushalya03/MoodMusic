@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useGoogleLogin } from "@react-oauth/google"; // <--- Import this
+import { useGoogleLogin } from "@react-oauth/google";
+import { toast, Toaster } from "react-hot-toast"; // Import Toast
 import { User, Mail, Lock, CheckCircle } from "lucide-react";
 import logo from "../assets/SVG.png";
 
@@ -13,7 +14,7 @@ export const Register = () => {
     password: "",
     confirmPassword: "",
   });
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // 1. Standard Input Change
   const handleChange = (e) => {
@@ -23,12 +24,13 @@ export const Register = () => {
   // 2. Standard Email/Password Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
+
+    setLoading(true);
 
     try {
       const res = await axios.post("http://localhost:5000/api/auth/register", {
@@ -37,38 +39,67 @@ export const Register = () => {
         password: formData.password,
       });
 
+      // Save Data
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      window.location.href = "/dashboard";
+
+      // Success Notification
+      toast.success("Account created successfully!");
+
+      // Redirect to login page
+      setTimeout(() => {
+        navigate("/login");
+      }, 1000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.msg || "Registration failed. Try again.");
+      toast.error(err.response?.data?.msg || "Registration failed. Try again.");
+      setLoading(false);
     }
   };
 
   // 3. Google Login Handler
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      const toastId = toast.loading("Connecting to Google...");
       try {
-        // Send Google Token to YOUR Backend
         const res = await axios.post("http://localhost:5000/api/auth/google", {
-          token: tokenResponse.credential || tokenResponse.access_token, // Handle implicit/code flow
+          token: tokenResponse.access_token,
         });
 
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
-        navigate("/dashboard");
+
+        toast.success("Google Login Successful!", { id: toastId });
+
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1000);
       } catch (err) {
         console.error("Google Backend Error:", err);
-        setError("Google Sign-In failed on server.");
+        toast.error("Google Sign-In failed on server.", { id: toastId });
       }
     },
-    onError: () => setError("Google Sign-In Failed"),
+    onError: () => toast.error("Google Sign-In Failed"),
   });
 
   return (
     <div className="min-h-screen w-full bg-[#131022] relative overflow-hidden flex flex-col font-sans text-white">
-      {/* Background & Navbar remain unchanged... */}
+      {/* Toast Configuration */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "#1e1e1e",
+            color: "#fff",
+            border: "1px solid #333",
+            fontSize: "14px",
+          },
+          success: { iconTheme: { primary: "#4b2bee", secondary: "#fff" } },
+          error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
+        }}
+      />
+
+      {/* Background & Navbar */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[20%] w-[50vw] h-[50vw] bg-[#4b2bee] rounded-full mix-blend-screen filter blur-[120px] opacity-15"></div>
         <div className="absolute bottom-[-10%] right-[20%] w-[50vw] h-[50vw] bg-[#7c62f5] rounded-full mix-blend-screen filter blur-[120px] opacity-10"></div>
@@ -111,12 +142,6 @@ export const Register = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {error && (
-              <div className="text-red-500 text-sm text-center bg-red-500/10 p-2 rounded">
-                {error}
-              </div>
-            )}
-
             <div className="relative group">
               <label className="block text-sm font-semibold text-slate-200 mb-2 ml-1">
                 Username
@@ -200,9 +225,10 @@ export const Register = () => {
 
             <button
               type="submit"
-              className="mt-4 w-full h-14 rounded-full bg-gradient-to-r from-[#4b2bee] to-[#7c62f5] text-white font-bold text-lg hover:scale-[1.02] transition-all"
+              disabled={loading}
+              className={`mt-4 w-full h-14 rounded-full bg-gradient-to-r from-[#4b2bee] to-[#7c62f5] text-white font-bold text-lg hover:scale-[1.02] transition-all ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
-              Create Account
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
@@ -215,9 +241,8 @@ export const Register = () => {
             </div>
           </div>
 
-          {/* 4. Connected Google Button */}
           <button
-            onClick={() => googleLogin()} // <--- Triggers the Popup
+            onClick={() => googleLogin()}
             type="button"
             className="w-full h-12 rounded-full bg-[#ffffff0d] border border-[#ffffff1a] flex items-center justify-center gap-3 hover:bg-[#ffffff1a] transition-colors"
           >

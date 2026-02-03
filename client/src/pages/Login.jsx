@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom"; // Removed useNavigate as we force reload
 import axios from "axios";
-import { useGoogleLogin } from "@react-oauth/google"; // <--- Import
+import { useGoogleLogin } from "@react-oauth/google";
+import { toast, Toaster } from "react-hot-toast"; // Import Toast
 import { Mail, Lock } from "lucide-react";
 import logo from "../assets/SVG.png";
 import overlayIcon from "../assets/Overlay.png";
 
 export const Login = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,42 +17,77 @@ export const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setLoading(true);
+
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", {
         email: formData.email,
         password: formData.password,
       });
+
+      // Save Data
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      window.location.href = "/dashboard";
+
+      // Success Message
+      toast.success("Welcome back!", { duration: 2000 });
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.msg || "Login failed.");
+      toast.error(
+        err.response?.data?.msg || "Login failed. Check your credentials.",
+      );
+      setLoading(false);
     }
   };
 
   // Google Login Handler
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      const toastId = toast.loading("Connecting to Google...");
       try {
         const res = await axios.post("http://localhost:5000/api/auth/google", {
-          token: tokenResponse.access_token, // Send token to backend
+          token: tokenResponse.access_token,
         });
+
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
-        navigate("/dashboard");
+
+        toast.success("Google Login Successful!", { id: toastId });
+
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1000);
       } catch (err) {
         console.error("Google Backend Error:", err);
-        setError("Google Sign-In failed.");
+        toast.error("Google Sign-In failed.", { id: toastId });
       }
     },
-    onError: () => setError("Google Sign-In Failed"),
+    onError: () => toast.error("Google Sign-In Failed"),
   });
 
   return (
     <div className="min-h-screen w-full bg-[#131022] relative overflow-hidden flex flex-col font-sans text-white">
-      {/* Background & Navbar... */}
+      {/* Toast Configuration */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "#1e1e1e",
+            color: "#fff",
+            border: "1px solid #333",
+            fontSize: "14px",
+          },
+          success: { iconTheme: { primary: "#4b2bee", secondary: "#fff" } },
+          error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
+        }}
+      />
+
+      {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[20%] w-[50vw] h-[50vw] bg-[#4b2bee] rounded-full mix-blend-screen filter blur-[120px] opacity-15"></div>
         <div className="absolute bottom-[-10%] right-[20%] w-[50vw] h-[50vw] bg-[#7c62f5] rounded-full mix-blend-screen filter blur-[120px] opacity-10"></div>
@@ -99,12 +134,6 @@ export const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {error && (
-              <div className="text-red-500 text-sm text-center bg-red-500/10 p-2 rounded">
-                {error}
-              </div>
-            )}
-
             <div className="relative group">
               <label className="block text-sm font-semibold text-white mb-2 ml-1">
                 Email Address
@@ -155,9 +184,10 @@ export const Login = () => {
 
             <button
               type="submit"
-              className="mt-2 w-full h-14 rounded-full bg-gradient-to-r from-[#4b2bee] to-[#6e55f3] text-white font-bold text-base hover:scale-[1.02] transition-all"
+              disabled={loading}
+              className={`mt-2 w-full h-14 rounded-full bg-gradient-to-r from-[#4b2bee] to-[#6e55f3] text-white font-bold text-base hover:scale-[1.02] transition-all ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
-              Sign In
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
 
@@ -170,10 +200,9 @@ export const Login = () => {
             </div>
           </div>
 
-          {/* Connected Google Button */}
           <div className="flex justify-center w-full">
             <button
-              onClick={() => googleLogin()} // <--- Triggers Popup
+              onClick={() => googleLogin()}
               type="button"
               className="w-full h-12 rounded-full border border-[#ffffff1a] flex items-center justify-center gap-3 hover:bg-[#ffffff1a] transition-colors"
             >
