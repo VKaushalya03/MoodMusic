@@ -163,9 +163,11 @@ export const Library = () => {
 
       <main className="w-full md:ml-64 pb-28 pt-10 px-4 md:px-6">
         <div className="flex flex-col gap-2 mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Library</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Your Saved Playlists
+          </h1>
           <p className="text-slate-400 text-sm">
-            Your personal mood collections.
+            Manage and listen to your curated mood-based collections.
           </p>
         </div>
 
