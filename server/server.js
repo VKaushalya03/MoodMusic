@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: ["https://your-project-name.vercel.app", "http://localhost:5173"],
+    origin: ["https://mood-music-steel.vercel.app", "http://localhost:5173"],
   }),
 );
 
