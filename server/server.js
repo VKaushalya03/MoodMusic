@@ -10,7 +10,11 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: ["https://your-project-name.vercel.app", "http://localhost:5173"],
+  }),
+);
 
 // Define Routes
 app.use("/api/auth", require("./routes/auth"));
