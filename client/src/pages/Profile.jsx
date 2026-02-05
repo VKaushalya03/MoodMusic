@@ -1,9 +1,10 @@
 import { useState } from "react";
 import axios from "axios";
-import { toast, Toaster } from "react-hot-toast"; // Import Toast
+import { toast, Toaster } from "react-hot-toast";
 import { Sidebar } from "../components/Sidebar";
 import { Player } from "../components/Player";
 import { Shield, User, LogOut } from "lucide-react";
+import { API_BASE_URL } from "../config";
 
 export const Profile = () => {
   // User State
@@ -47,7 +48,7 @@ export const Profile = () => {
 
       // 2. API Request
       const res = await axios.put(
-        "http://localhost:5000/api/auth/updatepassword",
+        `${API_BASE_URL}/api/auth/updatepassword`,
         { currentPassword, newPassword },
         {
           headers: { "x-auth-token": token }, // Send token for auth

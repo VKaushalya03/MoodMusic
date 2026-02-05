@@ -6,6 +6,7 @@ import { toast, Toaster } from "react-hot-toast"; // Import Toast
 import { Mail, Lock } from "lucide-react";
 import logo from "../assets/SVG.png";
 import overlayIcon from "../assets/Overlay.png";
+import { API_BASE_URL } from "../config.js";
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -20,7 +21,7 @@ export const Login = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email: formData.email,
         password: formData.password,
       });
@@ -50,7 +51,7 @@ export const Login = () => {
     onSuccess: async (tokenResponse) => {
       const toastId = toast.loading("Connecting to Google...");
       try {
-        const res = await axios.post("http://localhost:5000/api/auth/google", {
+        const res = await axios.post(`${API_BASE_URL}/api/auth/google`, {
           token: tokenResponse.access_token,
         });
 

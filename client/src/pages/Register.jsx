@@ -5,6 +5,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { toast, Toaster } from "react-hot-toast"; // Import Toast
 import { User, Mail, Lock, CheckCircle } from "lucide-react";
 import logo from "../assets/SVG.png";
+import { API_BASE_URL } from "../config";
 
 export const Register = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export const Register = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -62,7 +63,7 @@ export const Register = () => {
     onSuccess: async (tokenResponse) => {
       const toastId = toast.loading("Connecting to Google...");
       try {
-        const res = await axios.post("http://localhost:5000/api/auth/google", {
+        const res = await axios.post(`${API_BASE_URL}/api/auth/google`, {
           token: tokenResponse.access_token,
         });
 

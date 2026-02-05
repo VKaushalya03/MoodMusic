@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 import { usePlayer } from "../context/PlayerContext";
 import { AddToPlaylistModal } from "../components/AddToPlaylistModal"; // Import Modal
 
-const YOUTUBE_API_KEY = "AIzaSyDHjSK4GSCnTcQxshTDGVMHK1VyZCd_SR0";
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 const YOUTUBE_URL = "https://www.googleapis.com/youtube/v3/search";
 const SUGGESTION_URL = "https://suggestqueries.google.com/complete/search";
 

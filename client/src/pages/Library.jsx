@@ -14,6 +14,7 @@ import {
 import { Sidebar } from "../components/Sidebar";
 import { Player } from "../components/Player";
 import { usePlayer } from "../context/PlayerContext";
+import { API_BASE_URL } from "../config";
 
 export const Library = () => {
   const { playSong } = usePlayer();
@@ -33,7 +34,7 @@ export const Library = () => {
   const fetchPlaylists = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/playlists", {
+      const res = await axios.get(`${API_BASE_URL}/api/playlists`, {
         headers: { "x-auth-token": token },
       });
       setPlaylists(res.data);
@@ -57,7 +58,7 @@ export const Library = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:5000/api/playlists",
+        `${API_BASE_URL}/api/playlists`,
         { name: newPlaylistName },
         { headers: { "x-auth-token": token } },
       );
@@ -78,7 +79,7 @@ export const Library = () => {
       return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/playlists/${id}`, {
+      await axios.delete(`${API_BASE_URL}/api/playlists/${id}`, {
         headers: { "x-auth-token": token },
       });
       toast.success("Playlist deleted");
@@ -104,7 +105,7 @@ export const Library = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:5000/api/playlists/${id}`,
+        `${API_BASE_URL}/api/playlists/${id}`,
         { name: renameValue },
         { headers: { "x-auth-token": token } },
       );
