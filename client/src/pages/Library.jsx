@@ -14,6 +14,7 @@ import {
 import { Sidebar } from "../components/Sidebar";
 import { Player } from "../components/Player";
 import { usePlayer } from "../context/PlayerContext";
+import { useSidebar } from "../context/SidebarContext";
 import { API_BASE_URL } from "../config";
 
 export const Library = () => {
@@ -21,6 +22,7 @@ export const Library = () => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const { isCollapsed } = useSidebar();
 
   // Modal States
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -29,6 +31,7 @@ export const Library = () => {
   // Editing State
   const [editingId, setEditingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const [managingPlaylist, setManagingPlaylist] = useState(null);
 
   // Fetch Playlists
   const fetchPlaylists = async () => {
@@ -93,8 +96,31 @@ export const Library = () => {
   // Start Editing
   const handleStartEdit = (e, playlist) => {
     e.stopPropagation();
-    setEditingId(playlist._id);
+    setManagingPlaylist(playlist);
     setRenameValue(playlist.name);
+  };
+
+  const handleRemoveSong = async (playlistId, videoId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `http://localhost:5000/api/playlists/${playlistId}/songs/${videoId}`,
+        {
+          headers: { "x-auth-token": token },
+        },
+      );
+      toast.success("Song removed");
+
+      // Update local state immediately for fast UI
+      setManagingPlaylist((prev) => ({
+        ...prev,
+        songs: prev.songs.filter((s) => s.videoId !== videoId),
+      }));
+      fetchPlaylists(); // Refresh background data
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to remove song");
+    }
   };
 
   // Save Rename
@@ -162,7 +188,11 @@ export const Library = () => {
         <Sidebar />
       </div>
 
-      <main className="w-full md:ml-64 pb-28 pt-10 px-4 md:px-6">
+      <main
+        className={`w-full transition-all duration-300 ease-in-out px-8 md:px-16 pt-16 pb-32 min-h-screen ${
+          isCollapsed ? "md:ml-[80px]" : "md:ml-[260px]"
+        }`}
+      >
         <div className="flex flex-col gap-2 mb-8">
           <h1 className="text-3xl font-bold tracking-tight">
             Your Saved Playlists
@@ -346,6 +376,87 @@ export const Library = () => {
                 Create
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MANAGE PLAYLIST MODAL */}
+      {managingPlaylist && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1e1e1e] rounded-[32px] p-8 w-full max-w-2xl max-h-[80vh] flex flex-col border border-[#ffffff1a] shadow-2xl animate-fade-in">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-full mr-8">
+                <label className="text-xs text-slate-500 uppercase font-bold tracking-wider ml-1 mb-1 block">
+                  Rename Playlist
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    className="flex-1 bg-[#121212] rounded-xl px-4 py-3 text-white border border-[#ffffff1a] focus:border-[#4b2bee] outline-none"
+                  />
+                  <button
+                    onClick={(e) => handleRename(e, managingPlaylist._id)}
+                    className="px-6 py-3 bg-[#4b2bee] hover:bg-[#3b22c0] rounded-xl font-bold transition-colors"
+                  >
+                    Save Name
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => setManagingPlaylist(null)}
+                className="p-2 bg-[#2a2a2a] rounded-full text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar border-t border-[#ffffff0d] pt-6">
+              <h4 className="text-sm font-bold text-slate-400 mb-4">
+                Tracks ({managingPlaylist.songs.length})
+              </h4>
+
+              {managingPlaylist.songs.length === 0 ? (
+                <div className="text-center py-10 text-slate-500">
+                  No tracks in this playlist yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {managingPlaylist.songs.map((song) => (
+                    <div
+                      key={song.videoId}
+                      className="flex items-center justify-between p-3 bg-[#ffffff05] rounded-2xl border border-transparent hover:border-[#ffffff1a] group transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <img
+                          src={song.image}
+                          alt="cover"
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                        <div>
+                          <p className="text-white font-bold text-sm line-clamp-1">
+                            {song.title}
+                          </p>
+                          <p className="text-slate-400 text-xs line-clamp-1">
+                            {song.artist}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          handleRemoveSong(managingPlaylist._id, song.videoId)
+                        }
+                        className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                        title="Remove from playlist"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

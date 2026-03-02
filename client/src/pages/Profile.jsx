@@ -5,6 +5,7 @@ import { Sidebar } from "../components/Sidebar";
 import { Player } from "../components/Player";
 import { Shield, User, LogOut } from "lucide-react";
 import { API_BASE_URL } from "../config";
+import { useSidebar } from "../context/SidebarContext";
 
 export const Profile = () => {
   // User State
@@ -14,6 +15,8 @@ export const Profile = () => {
       ? JSON.parse(storedUser)
       : { username: "Guest", email: "guest@example.com" };
   });
+
+  const { isCollapsed } = useSidebar();
 
   // Password Form State
   const [currentPassword, setCurrentPassword] = useState("");
@@ -107,93 +110,98 @@ export const Profile = () => {
 
       <Sidebar />
 
-      <main className="ml-64 pb-28 pt-12 px-12 flex flex-col items-center">
-        {/* Avatar Section */}
-        <div className="flex flex-col items-center gap-4 mb-12">
-          <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-br from-[#4b2bee] to-blue-500">
-            <div className="w-full h-full rounded-full bg-[#1e1e1e] flex items-center justify-center text-4xl font-bold overflow-hidden">
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User size={64} className="text-slate-400" />
-              )}
+      <main
+        className={`w-full transition-all duration-300 ease-in-out pt-16 pb-32 min-h-screen flex flex-col items-center ${
+          isCollapsed ? "md:ml-[80px]" : "md:ml-[260px]"
+        }`}
+      >
+        <div className="w-full max-w-2xl px-8 md:px-16">
+          {" "}
+          {/* Avatar Section */}{" "}
+          <div className="flex flex-col items-center gap-4 mb-12 w-full">
+            <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-br from-[#4b2bee] to-blue-500">
+              <div className="w-full h-full rounded-full bg-[#1e1e1e] flex items-center justify-center text-4xl font-bold overflow-hidden">
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User size={64} className="text-slate-400" />
+                )}
+              </div>
+            </div>
+            <div className="text-center">
+              <h1 className="text-3xl font-bold">{user.username}</h1>
+              <p className="text-slate-400 mt-1">{user.email}</p>
             </div>
           </div>
-          <div className="text-center">
-            <h1 className="text-3xl font-bold">{user.username}</h1>
-            <p className="text-slate-400 mt-1">{user.email}</p>
-          </div>
-        </div>
-
-        {/* Security Card */}
-        <div className="w-full max-w-2xl bg-[#1e1e1e] rounded-[48px] border border-[#ffffff0d] p-8 shadow-xl">
-          <div className="flex items-center gap-3 border-b border-[#ffffff0d] pb-6 mb-8">
-            <Shield className="text-[#4b2bee]" />
-            <h2 className="text-xl font-bold">Security & Password</h2>
-          </div>
-
-          <form onSubmit={handleUpdatePassword} className="space-y-6">
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-2">
-                Current Password
-              </label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-[#121212] rounded-full h-12 px-6 border border-[#ffffff0d] focus:border-[#4b2bee] transition-colors outline-none text-white"
-              />
+          {/* Security Card */}
+          <div className="w-full max-w-2xl mx-auto bg-[#1e1e1e] rounded-[48px] border border-[#ffffff0d] p-8 shadow-xl">
+            <div className="flex items-center gap-3 border-b border-[#ffffff0d] pb-6 mb-8">
+              <Shield className="text-[#4b2bee]" />
+              <h2 className="text-xl font-bold">Security & Password</h2>
             </div>
 
-            <div className="flex gap-4">
-              <div className="flex-1">
+            <form onSubmit={handleUpdatePassword} className="space-y-6">
+              <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-2">
-                  New Password
+                  Current Password
                 </label>
                 <input
                   type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full bg-[#121212] rounded-full h-12 px-6 border border-[#ffffff0d] focus:border-[#4b2bee] transition-colors outline-none text-white"
                 />
               </div>
-              <div className="flex-1">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-2">
-                  Confirm
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-[#121212] rounded-full h-12 px-6 border border-[#ffffff0d] focus:border-[#4b2bee] transition-colors outline-none text-white"
-                />
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-2">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#121212] rounded-full h-12 px-6 border border-[#ffffff0d] focus:border-[#4b2bee] transition-colors outline-none text-white"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-2">
+                    Confirm
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#121212] rounded-full h-12 px-6 border border-[#ffffff0d] focus:border-[#4b2bee] transition-colors outline-none text-white"
+                  />
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full h-12 bg-gradient-to-r from-[#4b2bee] to-blue-600 rounded-full font-bold shadow-lg hover:scale-[1.01] transition-transform ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
-            >
-              {loading ? "Updating..." : "Update Password"}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full h-12 bg-gradient-to-r from-[#4b2bee] to-blue-600 rounded-full font-bold shadow-lg hover:scale-[1.01] transition-transform ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+              >
+                {loading ? "Updating..." : "Update Password"}
+              </button>
+            </form>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="mt-12 flex items-center gap-2 px-8 py-3 rounded-full border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors mx-auto"
+          >
+            <LogOut size={18} />
+            <span className="font-semibold">Logout Account</span>
+          </button>
         </div>
-
-        <button
-          onClick={handleLogout}
-          className="mt-12 flex items-center gap-2 px-8 py-3 rounded-full border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors"
-        >
-          <LogOut size={18} />
-          <span className="font-semibold">Logout Account</span>
-        </button>
       </main>
 
       <Player />

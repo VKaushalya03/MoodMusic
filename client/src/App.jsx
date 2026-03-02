@@ -4,59 +4,53 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useState } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { SidebarProvider } from "./context/SidebarContext"; // ✅ IMPORT THIS
+import { PlayerProvider } from "./context/PlayerContext"; // Assuming you have this
 
 // Pages
 import { Register } from "./pages/Register";
 import { Login } from "./pages/Login";
+import { Home } from "./pages/Home";
 import { Discover } from "./pages/Discover";
 import { Profile } from "./pages/Profile";
 import { Library } from "./pages/Library";
 
 function App() {
-  // ✅ FIX: Removed 'setIsAuthenticated' because it was unused
-  const [isAuthenticated] = useState(() => !!localStorage.getItem("token"));
+  const isAuthenticated = !!localStorage.getItem("token");
 
   return (
-    <Router>
-      <Routes>
-        <Route
-          path="/register"
-          element={
-            !isAuthenticated ? <Register /> : <Navigate to="/dashboard" />
-          }
-        />
-        <Route
-          path="/login"
-          element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />}
-        />
+    <SidebarProvider>
+      {" "}
+      {/* ✅ WRAP APP HERE */}
+      <Router>
+        <Routes>
+          <Route
+            path="/register"
+            element={!isAuthenticated ? <Register /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/login"
+            element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
+          />
 
-        {/* Dashboard leads to Discover */}
-        <Route
-          path="/dashboard"
-          element={isAuthenticated ? <Discover /> : <Navigate to="/login" />}
-        />
+          <Route path="/" element={<Home />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/dashboard" element={<Navigate to="/discover" />} />
 
-        {/* Profile Route */}
-        <Route
-          path="/profile"
-          element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
-        />
+          <Route
+            path="/profile"
+            element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/library"
+            element={isAuthenticated ? <Library /> : <Navigate to="/login" />}
+          />
 
-        {/* Library Route */}
-        <Route
-          path="/library"
-          element={isAuthenticated ? <Library /> : <Navigate to="/login" />}
-        />
-
-        <Route
-          path="/"
-          element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />}
-        />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </SidebarProvider>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { usePlayer } from "../context/PlayerContext";
+import { AuthPromptModal } from "./AuthPromptModal"; // IMPORT THE MODAL
 import {
   Play,
   Pause,
@@ -31,6 +32,11 @@ export const Player = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [favoritesId, setFavoritesId] = useState(null);
 
+  // --- Auth State & Modal ---
+  const isAuthenticated = !!localStorage.getItem("token");
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
+
   const playerRef = useRef(null);
   const intervalRef = useRef(null);
 
@@ -45,12 +51,12 @@ export const Player = () => {
     setIsLiked(false);
   }
 
-  // 1. Fetch "Favorites" Playlist ID on Mount
+  // 1. Fetch "Favorites" Playlist ID on Mount (Only if Auth)
   useEffect(() => {
+    if (!isAuthenticated) return; // Skip if guest
     const fetchFavoritesId = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) return;
         const res = await axios.get("http://localhost:5000/api/playlists", {
           headers: { "x-auth-token": token },
         });
@@ -61,10 +67,11 @@ export const Player = () => {
       }
     };
     fetchFavoritesId();
-  }, []);
+  }, [isAuthenticated]);
 
   // 2. Check if current song is in Favorites
   useEffect(() => {
+    if (!isAuthenticated) return; // Skip if guest
     const checkIfLiked = async () => {
       if (!currentSong || !favoritesId) return;
       try {
@@ -87,34 +94,32 @@ export const Player = () => {
     if (currentSong) {
       checkIfLiked();
     }
-  }, [currentSong?.id, favoritesId]);
+  }, [currentSong?.id, favoritesId, isAuthenticated]);
 
-  // 3. Toggle Like (Now with Auto-Create)
+  // 3. Toggle Like (Protected for Guests)
   const toggleLike = async () => {
+    if (!isAuthenticated) {
+      setAuthMessage("Sign up to save songs and create custom playlists.");
+      setShowAuthPrompt(true);
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const config = { headers: { "x-auth-token": token } };
-
       let targetId = favoritesId;
 
-      // ✅ FIX: If Favorites playlist doesn't exist, create it automatically!
       if (!targetId) {
-        console.log("Favorites list missing. Creating one...");
         const createRes = await axios.post(
           "http://localhost:5000/api/playlists",
-          {
-            name: "Favorites",
-            isFavorites: true,
-          },
+          { name: "Favorites", isFavorites: true },
           config,
         );
-
         targetId = createRes.data._id;
-        setFavoritesId(targetId); // Update state for next time
+        setFavoritesId(targetId);
       }
 
       if (isLiked) {
-        // Remove
         await axios.delete(
           `http://localhost:5000/api/playlists/${targetId}/songs/${currentSong.id}`,
           config,
@@ -122,7 +127,6 @@ export const Player = () => {
         setIsLiked(false);
         toast.success("Removed from Favorites");
       } else {
-        // Add
         await axios.post(
           `http://localhost:5000/api/playlists/${targetId}/songs`,
           {
@@ -142,12 +146,26 @@ export const Player = () => {
     }
   };
 
-  // --- Existing Player Logic ---
+  // --- 30 SECOND LIMIT LOGIC ADDED HERE ---
   const startProgressTracking = () => {
     if (intervalRef.current) return;
     intervalRef.current = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
-        setProgress(playerRef.current.getCurrentTime());
+        const currentTime = playerRef.current.getCurrentTime();
+
+        // 🚨 Block Guest after 30 seconds
+        if (!isAuthenticated && currentTime >= 30) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+          setAuthMessage(
+            "You've reached the 30-second preview limit. Sign up to hear the full track!",
+          );
+          setShowAuthPrompt(true);
+          playerRef.current.seekTo(29, true); // Keep them trapped at 29s
+          return;
+        }
+
+        setProgress(currentTime);
       }
     }, 100);
   };
@@ -170,11 +188,20 @@ export const Player = () => {
     if (!isReady || !playerRef.current) return;
     const progressBar = e.currentTarget;
     const clickPosition = e.nativeEvent.offsetX / progressBar.clientWidth;
-    const newTime = clickPosition * duration;
+    let newTime = clickPosition * duration;
+
+    // 🚨 Prevent Guests from seeking past 30 seconds
+    if (!isAuthenticated && newTime > 30) {
+      newTime = 29;
+      setAuthMessage("Sign up to listen to the full track!");
+      setShowAuthPrompt(true);
+    }
+
     playerRef.current.seekTo(newTime, true);
     setProgress(newTime);
   };
 
+  // ... (Rest of the YouTube init code remains the same)
   useEffect(() => {
     if (!currentSong) return;
     if (!window.YT) {
@@ -185,9 +212,7 @@ export const Player = () => {
     }
 
     const initPlayer = () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
+      if (playerRef.current) playerRef.current.destroy();
       playerRef.current = new window.YT.Player("youtube-player", {
         height: "360",
         width: "640",
@@ -221,9 +246,7 @@ export const Player = () => {
               nextSong();
             }
           },
-          onError: () => {
-            setIsReady(false);
-          },
+          onError: () => setIsReady(false),
         },
       });
     };
@@ -251,114 +274,122 @@ export const Player = () => {
   if (!currentSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 w-full h-24 bg-[#121214]/95 backdrop-blur-md border-t border-[#ffffff0d] z-30 flex items-center px-6 justify-between transition-all duration-300">
-      <div
-        style={{
-          position: "absolute",
-          top: "-9999px",
-          left: "-9999px",
-          width: "640px",
-          height: "360px",
-        }}
-      >
-        <div id="youtube-player"></div>
-      </div>
+    <>
+      <AuthPromptModal
+        isOpen={showAuthPrompt}
+        onClose={() => setShowAuthPrompt(false)}
+        message={authMessage}
+      />
 
-      {/* Song Info */}
-      <div className="flex items-center gap-4 w-[30%]">
-        <div className="w-14 h-14 bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-[#ffffff1a]">
-          <img
-            src={currentSong.image}
-            alt="Album Art"
-            className="w-full h-full object-cover animate-fade-in"
-          />
-        </div>
-        <div className="overflow-hidden">
-          <h4 className="text-white font-bold text-sm truncate max-w-[200px]">
-            {currentSong.title}
-          </h4>
-          <p className="text-slate-400 text-xs truncate max-w-[200px]">
-            {currentSong.artist}
-          </p>
-        </div>
-        <button
-          onClick={toggleLike}
-          className={`transition-colors ml-2 ${isLiked ? "text-[#4b2bee]" : "text-slate-400 hover:text-[#4b2bee]"}`}
+      <div className="fixed bottom-0 left-0 w-full h-24 bg-[#121214]/95 backdrop-blur-md border-t border-[#ffffff0d] z-50 flex items-center px-6 justify-between transition-all duration-300">
+        <div
+          style={{
+            position: "absolute",
+            top: "-9999px",
+            left: "-9999px",
+            width: "640px",
+            height: "360px",
+          }}
         >
-          <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
-        </button>
-      </div>
+          <div id="youtube-player"></div>
+        </div>
 
-      {/* Controls */}
-      <div className="flex flex-col items-center gap-2 w-[40%]">
-        <div className="flex items-center gap-6">
-          <button className="text-slate-400 hover:text-white transition-colors">
-            <Shuffle size={18} />
-          </button>
+        {/* Song Info */}
+        <div className="flex items-center gap-4 w-[30%]">
+          <div className="w-14 h-14 bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-[#ffffff1a]">
+            <img
+              src={currentSong.image}
+              alt="Album Art"
+              className="w-full h-full object-cover animate-fade-in"
+            />
+          </div>
+          <div className="overflow-hidden">
+            <h4 className="text-white font-bold text-sm truncate max-w-[200px]">
+              {currentSong.title}
+            </h4>
+            <p className="text-slate-400 text-xs truncate max-w-[200px]">
+              {currentSong.artist}
+            </p>
+          </div>
           <button
-            onClick={prevSong}
-            className="text-white hover:text-[#4b2bee] transition-colors active:scale-95"
+            onClick={toggleLike}
+            className={`transition-colors ml-2 ${isLiked ? "text-[#4b2bee]" : "text-slate-400 hover:text-[#4b2bee]"}`}
           >
-            <SkipBack size={24} fill="currentColor" />
-          </button>
-          <button
-            onClick={togglePlay}
-            disabled={!isReady}
-            className={`w-10 h-10 bg-white rounded-full flex items-center justify-center text-black hover:scale-110 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] ${!isReady ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {isPlaying ? (
-              <Pause size={20} fill="currentColor" />
-            ) : (
-              <Play size={20} fill="currentColor" className="ml-1" />
-            )}
-          </button>
-          <button
-            onClick={nextSong}
-            className="text-white hover:text-[#4b2bee] transition-colors active:scale-95"
-          >
-            <SkipForward size={24} fill="currentColor" />
-          </button>
-          <button className="text-slate-400 hover:text-white transition-colors">
-            <Repeat size={18} />
+            <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
           </button>
         </div>
-        <div className="w-full flex items-center gap-3 text-xs text-slate-400 font-medium">
-          <span>{formatTime(progress)}</span>
-          <div
-            className="flex-1 h-1 bg-[#ffffff1a] rounded-full cursor-pointer relative group overflow-hidden"
-            onClick={handleSeek}
-          >
-            <div className="absolute top-0 left-0 h-full w-full bg-slate-800" />
+
+        {/* Controls */}
+        <div className="flex flex-col items-center gap-2 w-[40%]">
+          <div className="flex items-center gap-6">
+            <button className="text-slate-400 hover:text-white transition-colors">
+              <Shuffle size={18} />
+            </button>
+            <button
+              onClick={prevSong}
+              className="text-white hover:text-[#4b2bee] transition-colors active:scale-95"
+            >
+              <SkipBack size={24} fill="currentColor" />
+            </button>
+            <button
+              onClick={togglePlay}
+              disabled={!isReady}
+              className={`w-10 h-10 bg-white rounded-full flex items-center justify-center text-black hover:scale-110 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] ${!isReady ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {isPlaying ? (
+                <Pause size={20} fill="currentColor" />
+              ) : (
+                <Play size={20} fill="currentColor" className="ml-1" />
+              )}
+            </button>
+            <button
+              onClick={nextSong}
+              className="text-white hover:text-[#4b2bee] transition-colors active:scale-95"
+            >
+              <SkipForward size={24} fill="currentColor" />
+            </button>
+            <button className="text-slate-400 hover:text-white transition-colors">
+              <Repeat size={18} />
+            </button>
+          </div>
+          <div className="w-full flex items-center gap-3 text-xs text-slate-400 font-medium">
+            <span>{formatTime(progress)}</span>
             <div
-              className="absolute top-0 left-0 h-full bg-[#4b2bee] rounded-full transition-all duration-100 ease-linear group-hover:bg-[#5b3cff]"
-              style={{
-                width: duration ? `${(progress / duration) * 100}%` : "0%",
-              }}
+              className="flex-1 h-1 bg-[#ffffff1a] rounded-full cursor-pointer relative group overflow-hidden"
+              onClick={handleSeek}
+            >
+              <div className="absolute top-0 left-0 h-full w-full bg-slate-800" />
+              <div
+                className="absolute top-0 left-0 h-full bg-[#4b2bee] rounded-full transition-all duration-100 ease-linear group-hover:bg-[#5b3cff]"
+                style={{
+                  width: duration ? `${(progress / duration) * 100}%` : "0%",
+                }}
+              ></div>
+            </div>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+
+        {/* Volume */}
+        <div className="flex items-center justify-end gap-3 w-[30%]">
+          <Volume2 size={20} className="text-slate-400" />
+          <div className="w-24 h-1 bg-[#ffffff1a] rounded-full overflow-hidden cursor-pointer relative group">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="absolute w-full h-full opacity-0 cursor-pointer z-10"
+            />
+            <div
+              className="h-full bg-white group-hover:bg-[#4b2bee] transition-colors"
+              style={{ width: `${volume * 100}%` }}
             ></div>
           </div>
-          <span>{formatTime(duration)}</span>
         </div>
       </div>
-
-      {/* Volume */}
-      <div className="flex items-center justify-end gap-3 w-[30%]">
-        <Volume2 size={20} className="text-slate-400" />
-        <div className="w-24 h-1 bg-[#ffffff1a] rounded-full overflow-hidden cursor-pointer relative group">
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="absolute w-full h-full opacity-0 cursor-pointer z-10"
-          />
-          <div
-            className="h-full bg-white group-hover:bg-[#4b2bee] transition-colors"
-            style={{ width: `${volume * 100}%` }}
-          ></div>
-        </div>
-      </div>
-    </div>
+    </>
   );
 };

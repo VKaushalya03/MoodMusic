@@ -95,7 +95,7 @@ exports.googleLogin = async (req, res) => {
   const { token } = req.body; // This is the Access Token (ya29...)
 
   try {
-    // 1. Instead of verifyIdToken, we fetch user info using the Access Token
+    // 1. Fetch user info using the Access Token
     const googleResponse = await axios.get(
       "https://www.googleapis.com/oauth2/v3/userinfo",
       {
@@ -104,6 +104,9 @@ exports.googleLogin = async (req, res) => {
     );
 
     const { sub, name, email, picture } = googleResponse.data;
+
+    // ✅ FIX 1: Fallback username if Google doesn't provide 'name'
+    const safeUsername = name || email.split("@")[0];
 
     // 2. Check if user exists in our DB
     let user = await User.findOne({ email });
@@ -115,15 +118,23 @@ exports.googleLogin = async (req, res) => {
         await user.save();
       }
     } else {
+      // ✅ FIX 2: Generate a random password for Google users to satisfy the DB
+      const randomPassword = crypto.randomBytes(16).toString("hex");
+      const salt = await bcrypt.genSalt(10);
+      const hashedRandomPassword = await bcrypt.hash(randomPassword, salt);
+
       // User doesn't exist: Create new account
       user = new User({
-        username: name,
+        username: safeUsername,
         email: email,
+        password: hashedRandomPassword, // Passed the required password
         googleId: sub,
         avatar: picture,
-        // No password needed for Google users
       });
+
       await user.save();
+
+      // Create their default favorites playlist
       await new Playlist({
         user: user.id,
         name: "Favorites",
