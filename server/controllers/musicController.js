@@ -47,6 +47,67 @@ async function fetchYouTubeVideos(query, maxResults) {
   }
 }
 
+exports.generatePlaylist = async (req, res) => {
+  const { mood, language, genre, type } = req.query;
+
+  try {
+    let searchQuery = "";
+
+    // --- APPLY THE PSYCHOLOGICAL LOGIC HERE ---
+    if (type === "lift") {
+      let regulationPath = "uplifting boost"; // Default
+
+      switch (mood) {
+        case "Sad":
+          regulationPath = "uplifting calm to happy"; // 30% Sad → 40% Calm → 30% Happy
+          break;
+        case "Energetic": // Tense/Angry
+          regulationPath = "calming to happy upbeat"; // 30% Intense → 40% Calm → 30% Happy
+          break;
+        case "Chill":
+        case "Focused":
+          regulationPath = "calm to energetic wake up"; // 50% Calm → 50% Energetic
+          break;
+        case "Happy":
+        case "Romantic":
+          regulationPath = "happy energetic party boost"; // 50% Happy → 50% Energetic
+          break;
+      }
+      searchQuery = `${regulationPath} ${language} ${genre} music`;
+    } else {
+      // "match" - Iso-Principle
+      searchQuery = `${mood} ${language} ${genre} music`;
+    }
+
+    // --- CALL YOUTUBE API ---
+    const youtubeRes = await axios.get(
+      `https://www.googleapis.com/youtube/v3/search`,
+      {
+        params: {
+          part: "snippet",
+          q: searchQuery,
+          maxResults: 15,
+          type: "video",
+          videoCategoryId: "10", // 10 is the Music category
+          key: process.env.YOUTUBE_API_KEY,
+        },
+      },
+    );
+
+    // Format the response for the frontend
+    const songs = youtubeRes.data.items.map((item) => ({
+      videoId: item.id.videoId,
+      title: item.snippet.title,
+      artist: item.snippet.channelTitle,
+      image: item.snippet.thumbnails.high.url,
+    }));
+
+    res.json(songs);
+  } catch (err) {
+    console.error("Music Generation Error:", err.message);
+    res.status(500).json({ msg: "Failed to generate playlist" });
+  }
+};
 // @desc    Generate Playlist
 // @route   POST /api/music/recommend
 exports.getRecommendation = async (req, res) => {

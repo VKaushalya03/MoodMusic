@@ -380,77 +380,127 @@ export const Library = () => {
         </div>
       )}
 
-      {/* MANAGE PLAYLIST MODAL */}
+      {/* MANAGE PLAYLIST MODAL - APPLE MUSIC AESTHETIC */}
       {managingPlaylist && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1e1e1e] rounded-[32px] p-8 w-full max-w-2xl max-h-[80vh] flex flex-col border border-[#ffffff1a] shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-full mr-8">
-                <label className="text-xs text-slate-500 uppercase font-bold tracking-wider ml-1 mb-1 block">
-                  Rename Playlist
-                </label>
-                <div className="flex gap-2">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div className="bg-[#1C1C1E]/80 backdrop-blur-3xl rounded-[32px] w-full max-w-3xl max-h-[85vh] flex flex-col border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden">
+            {/* Header Section */}
+            <div className="relative pt-10 pb-8 px-8 flex flex-col md:flex-row gap-8 items-start md:items-end border-b border-white/5">
+              {/* Floating Close Button */}
+              <button
+                onClick={() => setManagingPlaylist(null)}
+                className="absolute top-6 right-6 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white/60 hover:text-white backdrop-blur-md transition-all"
+              >
+                <X size={20} />
+              </button>
+
+              {/* Apple Music Style Playlist Cover Collage */}
+              <div className="w-32 h-32 md:w-40 md:h-40 shrink-0 rounded-2xl overflow-hidden shadow-2xl bg-[#2C2C2E] grid grid-cols-2 grid-rows-2">
+                {managingPlaylist.songs.length === 0 ? (
+                  <div className="col-span-2 row-span-2 flex items-center justify-center text-white/20">
+                    <Music size={40} />
+                  </div>
+                ) : managingPlaylist.songs.length < 4 ? (
+                  <img
+                    src={managingPlaylist.songs[0].image}
+                    alt="cover"
+                    className="col-span-2 row-span-2 w-full h-full object-cover"
+                  />
+                ) : (
+                  managingPlaylist.songs
+                    .slice(0, 4)
+                    .map((song, i) => (
+                      <img
+                        key={i}
+                        src={song.image}
+                        alt="cover"
+                        className="w-full h-full object-cover"
+                      />
+                    ))
+                )}
+              </div>
+
+              {/* Title & Edit Section */}
+              <div className="flex-1 w-full">
+                <span className="text-white/50 text-xs font-bold tracking-widest uppercase mb-2 block">
+                  Playlist
+                </span>
+
+                <div className="flex flex-col gap-3">
                   <input
                     type="text"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
-                    className="flex-1 bg-[#121212] rounded-xl px-4 py-3 text-white border border-[#ffffff1a] focus:border-[#4b2bee] outline-none"
+                    placeholder="Playlist Name"
+                    className="w-full bg-transparent text-3xl md:text-4xl font-extrabold text-white outline-none border-b border-white/10 focus:border-[#4b2bee] transition-colors pb-1 placeholder:text-white/20 truncate"
                   />
-                  <button
-                    onClick={(e) => handleRename(e, managingPlaylist._id)}
-                    className="px-6 py-3 bg-[#4b2bee] hover:bg-[#3b22c0] rounded-xl font-bold transition-colors"
-                  >
-                    Save Name
-                  </button>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-white/60 text-sm font-medium">
+                      {managingPlaylist.songs.length}{" "}
+                      {managingPlaylist.songs.length === 1 ? "Song" : "Songs"}
+                    </span>
+
+                    <button
+                      onClick={(e) => handleRename(e, managingPlaylist._id)}
+                      className="px-5 py-1.5 bg-white text-black hover:bg-gray-200 hover:scale-105 active:scale-95 rounded-full font-bold text-sm transition-all shadow-lg"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={() => setManagingPlaylist(null)}
-                className="p-2 bg-[#2a2a2a] rounded-full text-slate-400 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar border-t border-[#ffffff0d] pt-6">
-              <h4 className="text-sm font-bold text-slate-400 mb-4">
-                Tracks ({managingPlaylist.songs.length})
-              </h4>
-
+            {/* Tracks List */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
               {managingPlaylist.songs.length === 0 ? (
-                <div className="text-center py-10 text-slate-500">
-                  No tracks in this playlist yet.
+                <div className="flex flex-col items-center justify-center h-48 text-center px-4">
+                  <p className="text-white/40 font-medium text-lg">
+                    Your playlist is empty.
+                  </p>
+                  <p className="text-white/30 text-sm mt-1">
+                    Generate a new mood to add some tracks here.
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {managingPlaylist.songs.map((song) => (
+                <div className="space-y-1">
+                  {managingPlaylist.songs.map((song, index) => (
                     <div
                       key={song.videoId}
-                      className="flex items-center justify-between p-3 bg-[#ffffff05] rounded-2xl border border-transparent hover:border-[#ffffff1a] group transition-all"
+                      className="flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl group transition-colors"
                     >
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={song.image}
-                          alt="cover"
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
-                        <div>
-                          <p className="text-white font-bold text-sm line-clamp-1">
-                            {song.title}
-                          </p>
-                          <p className="text-slate-400 text-xs line-clamp-1">
-                            {song.artist}
-                          </p>
-                        </div>
+                      {/* Track Number */}
+                      <span className="w-6 text-center text-white/30 text-sm font-medium group-hover:text-white/60 transition-colors">
+                        {index + 1}
+                      </span>
+
+                      {/* Cover */}
+                      <img
+                        src={song.image}
+                        alt="cover"
+                        className="w-10 h-10 rounded-md object-cover shadow-sm"
+                      />
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-sm truncate">
+                          {song.title}
+                        </p>
+                        <p className="text-white/50 text-xs truncate mt-0.5">
+                          {song.artist}
+                        </p>
                       </div>
+
+                      {/* Remove Button (Appears on Hover) */}
                       <button
                         onClick={() =>
                           handleRemoveSong(managingPlaylist._id, song.videoId)
                         }
-                        className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                        title="Remove from playlist"
+                        className="p-2 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
+                        title="Remove track"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   ))}

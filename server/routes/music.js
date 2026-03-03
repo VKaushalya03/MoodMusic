@@ -4,6 +4,7 @@ const {
   getRecommendation,
   savePlaylist,
   getHistory,
+  generatePlaylist,
 } = require("../controllers/musicController");
 const auth = require("../middleware/authMiddleware");
 
@@ -17,5 +18,8 @@ router.post("/save", auth, savePlaylist);
 
 // GET /api/music/history
 router.get("/history", auth, getHistory);
+
+// GET /api/music/generate
+router.get("/generate", generatePlaylist);
 
 module.exports = router;
