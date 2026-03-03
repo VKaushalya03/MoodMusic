@@ -66,8 +66,12 @@ export const Home = () => {
         ),
       ]);
 
-      setGeneratedSongs(mainRes.data);
-      setRecommendedSongs(recRes.data.slice(0, 10));
+      // 🚨 THE FIX: Map 'videoId' to 'id' so the Player can read it!
+      const formatSongs = (songs) =>
+        songs.map((song) => ({ ...song, id: song.videoId }));
+
+      setGeneratedSongs(formatSongs(mainRes.data));
+      setRecommendedSongs(formatSongs(recRes.data).slice(0, 10));
       setHasGenerated(true);
 
       setTimeout(() => {

@@ -38,7 +38,7 @@ export const Login = () => {
 
       // Redirect after a short delay
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        window.location.href = "/";
       }, 1000);
     } catch (err) {
       console.error(err);
