@@ -6,7 +6,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { PlayerProvider } from "./context/PlayerContext"; // <--- Import this
 
 const GOOGLE_CLIENT_ID =
-  "559077721257-tmmo8kig7jcjijmtdn2jr6rdp59job32.apps.googleusercontent.com";
+  "545861443515-hi452can3dh2aenroj4tfsgstf4onav7.apps.googleusercontent.com";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   // Remove <React.StrictMode>
