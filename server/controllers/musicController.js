@@ -12,19 +12,19 @@ const TRANSITIONS = {
 };
 
 // Helper: Fetch videos from YouTube API
-async function fetchYouTubeVideos(query, maxResults) {
+async function fetchYouTubeVideos(query, maxResults, stageName = "Match") {
   const API_KEY = process.env.YOUTUBE_API_KEY;
 
-  // Safety Check: If no API key, return dummy data (prevents crashing during dev)
   if (!API_KEY || API_KEY.includes("YOUR_YOUTUBE_API_KEY")) {
-    console.log("⚠️ Using Dummy Data (No API Key Found)");
+    console.log("⚠️ Using Dummy Data");
     return Array(maxResults)
       .fill(0)
       .map((_, i) => ({
-        videoId: `dummy_${i}`,
-        title: `[Demo] ${query} Song ${i + 1}`,
-        thumbnail: "https://via.placeholder.com/320x180.png?text=Music+Video",
-        channel: "Demo Channel",
+        id: `dummy_${Date.now()}_${i}`,
+        title: `[${stageName}] ${query} Track ${i + 1}`,
+        image: "https://via.placeholder.com/320x180.png?text=Music+Video",
+        artist: "Demo Channel",
+        stage: stageName, // ✅ Tagging the stage for the frontend
       }));
   }
 
@@ -33,16 +33,14 @@ async function fetchYouTubeVideos(query, maxResults) {
     const response = await axios.get(url);
 
     return response.data.items.map((item) => ({
-      videoId: item.id.videoId,
+      id: item.id.videoId, // ✅ Fixed key for React Player
       title: item.snippet.title,
-      thumbnail: item.snippet.thumbnails.high.url,
-      channel: item.snippet.channelTitle,
+      image: item.snippet.thumbnails.high.url, // ✅ Fixed key
+      artist: item.snippet.channelTitle, // ✅ Fixed key
+      stage: stageName, // ✅ Tagging the stage
     }));
   } catch (error) {
-    console.error(
-      "YouTube API Error:",
-      error.response ? error.response.data : error.message,
-    );
+    console.error("YouTube API Error:", error.message);
     return [];
   }
 }
@@ -108,42 +106,47 @@ exports.generatePlaylist = async (req, res) => {
     res.status(500).json({ msg: "Failed to generate playlist" });
   }
 };
-// @desc    Generate Playlist
+// @desc    Generate Playlist (3-Stage Logic)
 // @route   POST /api/music/recommend
 exports.getRecommendation = async (req, res) => {
   const { mood, language, genre, mode } = req.body;
-  // mode = 'match' (default) or 'improve'
 
   let videoResults = [];
   console.log(`🎵 Generating: [${mode}] ${mood} - ${language} ${genre}`);
 
   try {
-    if (mode === "improve") {
-      // === STRATEGY 2: MOOD REGULATION (Transition) ===
-      const targetMoods = TRANSITIONS[mood] || ["Happy"];
+    if (mode === "improve" || mode === "lift") {
+      // === STRATEGY: ISO-PRINCIPLE MOOD REGULATION (14 Songs Total) ===
+      const targetMoods = TRANSITIONS[mood] || ["Happy", "Energetic"];
 
-      // Step 1: Validate current feelings (2 songs)
-      const v1 = await fetchYouTubeVideos(`${language} ${mood} ${genre}`, 2);
-
-      // Step 2: Bridge/Transition (4 songs)
-      const v2 = await fetchYouTubeVideos(
-        `${language} ${targetMoods[0]} ${genre}`,
-        4,
+      // Stage 1: Validate Current Emotion (3 songs)
+      const v1 = await fetchYouTubeVideos(
+        `${language} ${mood} ${genre}`,
+        3,
+        "Validation",
       );
 
-      // Step 3: Target State (4 songs)
+      // Stage 2: The Bridge / Transition (5 songs)
+      const v2 = await fetchYouTubeVideos(
+        `${language} ${targetMoods[0]} ${genre}`,
+        5,
+        "Transition",
+      );
+
+      // Stage 3: The Target State (6 songs)
       const v3 = await fetchYouTubeVideos(
         `${language} ${targetMoods[1] || targetMoods[0]} ${genre}`,
-        4,
+        6,
+        "Target",
       );
 
       videoResults = [...v1, ...v2, ...v3];
     } else {
-      // === STRATEGY 1: ISO-PRINCIPLE (Match Mood) ===
-      // Default behavior: 10 songs matching exactly how the user feels
+      // === STRATEGY: EXACT MATCH ===
       videoResults = await fetchYouTubeVideos(
         `${language} ${mood} ${genre}`,
         10,
+        "Match",
       );
     }
 

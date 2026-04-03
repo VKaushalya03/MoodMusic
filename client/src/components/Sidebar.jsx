@@ -7,9 +7,14 @@ import {
   LogOut,
   LogIn,
   UserPlus,
+  Home,
+  Compass,
+  Library,
+  User,
 } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
 import { usePlayer } from "../context/PlayerContext";
+import logo from "../assets/SVG.png"; // ✅ Your custom logo
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -55,7 +60,7 @@ export const Sidebar = () => {
       >
         {/* Minimize Toggle Button */}
         <button
-          onClick={toggleSidebar} // ✅ USE TOGGLE FUNCTION
+          onClick={toggleSidebar}
           className="absolute -right-3 top-8 bg-[#292348] border border-[#ffffff1a] text-white p-1 rounded-full z-50 hover:bg-[#4B2BEE] transition-colors shadow-lg"
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -65,11 +70,15 @@ export const Sidebar = () => {
         <div
           className={`flex items-center mb-10 overflow-hidden transition-all ${isCollapsed ? "px-0 justify-center" : "px-6 gap-[13px]"}`}
         >
-          <img
-            src="https://storage.googleapis.com/tagjs-prod.appspot.com/v1/cC9xGCcPoj/n5wlm3uk_expires_30_days.png"
-            className="w-10 h-10 object-fill shrink-0"
-            alt="Logo"
-          />
+          {/* Custom SVG Logo */}
+          <div className="w-10 h-10 flex items-center justify-center shrink-0">
+            <img
+              src={logo}
+              alt="MoodMusic Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+
           {!isCollapsed && (
             <div className="flex flex-col shrink-0 items-start gap-1 animate-fade-in whitespace-nowrap">
               <span className="text-white text-lg font-bold">MoodMusic</span>
@@ -85,16 +94,15 @@ export const Sidebar = () => {
           <Link
             to="/"
             title="Home"
-            className={`flex items-center w-full py-2.5 mb-2 rounded-[9999px] transition-colors ${isActive("/") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
+            className={`flex items-center w-full py-3 mb-2 rounded-[9999px] transition-colors ${isActive("/") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
           >
-            <img
-              src="https://storage.googleapis.com/tagjs-prod.appspot.com/v1/cC9xGCcPoj/5q1jln30_expires_30_days.png"
-              className={`w-6 h-7 object-fill shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"}`}
-              alt="Home"
+            <Home
+              size={24}
+              className={`shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"} ${isActive("/") ? "text-white" : "text-[#9B92C9]"}`}
             />
             {!isCollapsed && (
               <span
-                className={`${isActive("/") ? "text-white" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
+                className={`${isActive("/") ? "text-white font-semibold" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
               >
                 Home
               </span>
@@ -104,16 +112,15 @@ export const Sidebar = () => {
           <Link
             to="/discover"
             title="Discover"
-            className={`flex items-center w-full py-2.5 mb-2 rounded-[9999px] transition-colors ${isActive("/discover") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
+            className={`flex items-center w-full py-3 mb-2 rounded-[9999px] transition-colors ${isActive("/discover") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
           >
-            <img
-              src="https://storage.googleapis.com/tagjs-prod.appspot.com/v1/cC9xGCcPoj/c7etodj3_expires_30_days.png"
-              className={`w-6 h-7 object-fill shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"}`}
-              alt="Discover"
+            <Compass
+              size={24}
+              className={`shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"} ${isActive("/discover") ? "text-white" : "text-[#9B92C9]"}`}
             />
             {!isCollapsed && (
               <span
-                className={`${isActive("/discover") ? "text-white" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
+                className={`${isActive("/discover") ? "text-white font-semibold" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
               >
                 Discover
               </span>
@@ -124,16 +131,15 @@ export const Sidebar = () => {
             href="/library"
             title="Library"
             onClick={(e) => handleProtectedNavigation(e, "/library")}
-            className={`flex items-center w-full py-2.5 mb-2 rounded-[9999px] transition-colors cursor-pointer ${isActive("/library") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
+            className={`flex items-center w-full py-3 mb-2 rounded-[9999px] transition-colors cursor-pointer ${isActive("/library") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
           >
-            <img
-              src="https://storage.googleapis.com/tagjs-prod.appspot.com/v1/cC9xGCcPoj/0uk5obr3_expires_30_days.png"
-              className={`w-6 h-7 object-fill shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"}`}
-              alt="Library"
+            <Library
+              size={24}
+              className={`shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"} ${isActive("/library") ? "text-white" : "text-[#9B92C9]"}`}
             />
             {!isCollapsed && (
               <span
-                className={`${isActive("/library") ? "text-white" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
+                className={`${isActive("/library") ? "text-white font-semibold" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
               >
                 Library
               </span>
@@ -144,16 +150,15 @@ export const Sidebar = () => {
             href="/profile"
             title="Profile"
             onClick={(e) => handleProtectedNavigation(e, "/profile")}
-            className={`flex items-center w-full py-2.5 rounded-[9999px] transition-colors cursor-pointer ${isActive("/profile") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
+            className={`flex items-center w-full py-3 rounded-[9999px] transition-colors cursor-pointer ${isActive("/profile") ? "bg-[#292348]" : "hover:bg-[#ffffff0a]"} ${isCollapsed ? "justify-center" : "justify-start"}`}
           >
-            <img
-              src="https://storage.googleapis.com/tagjs-prod.appspot.com/v1/cC9xGCcPoj/hc11dswb_expires_30_days.png"
-              className={`w-6 h-7 object-fill shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"}`}
-              alt="Profile"
+            <User
+              size={24}
+              className={`shrink-0 ${isCollapsed ? "m-0" : "ml-4 mr-[13px]"} ${isActive("/profile") ? "text-white" : "text-[#9B92C9]"}`}
             />
             {!isCollapsed && (
               <span
-                className={`${isActive("/profile") ? "text-white" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
+                className={`${isActive("/profile") ? "text-white font-semibold" : "text-[#9B92C9]"} text-base whitespace-nowrap`}
               >
                 Profile
               </span>
