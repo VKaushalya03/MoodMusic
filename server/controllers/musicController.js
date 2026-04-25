@@ -4,14 +4,14 @@ const Playlist = require("../models/Playlist");
 // Mood Transition Matrix
 // Defines the path from a "Negative" mood to a "Positive" one
 const TRANSITIONS = {
-  Sad: ["Calm", "Happy"], // Sad -> Calm -> Happy
-  Tense: ["Calm", "Happy"], // Tense -> Calm -> Happy
-  Calm: ["Calm", "Energetic"], // Calm -> Wake up
-  Happy: ["Happy", "Energetic"], // Happy -> Boost
-  Focus: ["Focus", "Calm"], // Keep focused
+  Sad: ["Calm", "Happy"],
+  Tense: ["Calm", "Happy"],
+  Calm: ["Calm", "Energetic"],
+  Happy: ["Happy", "Energetic"],
+  Focus: ["Focus", "Calm"],
 };
 
-// Helper: Fetch videos from YouTube API
+// Helper: Fetch videos from YouTube API (With Strict Duration Filtering)
 async function fetchYouTubeVideos(query, maxResults, stageName = "Match") {
   const API_KEY = process.env.YOUTUBE_API_KEY;
 
@@ -24,20 +24,44 @@ async function fetchYouTubeVideos(query, maxResults, stageName = "Match") {
         title: `[${stageName}] ${query} Track ${i + 1}`,
         image: "https://via.placeholder.com/320x180.png?text=Music+Video",
         artist: "Demo Channel",
-        stage: stageName, // ✅ Tagging the stage for the frontend
+        stage: stageName,
       }));
   }
 
   try {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query} music&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${API_KEY}`;
-    const response = await axios.get(url);
+    // STEP 1: Fetch a larger batch (maxResults * 2) to account for the Shorts we will delete
+    const fetchCount = maxResults * 2;
+    const safeQuery = encodeURIComponent(`${query} official audio`);
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${safeQuery}&type=video&videoCategoryId=10&maxResults=${fetchCount}&key=${API_KEY}`;
 
-    return response.data.items.map((item) => ({
-      id: item.id.videoId, // ✅ Fixed key for React Player
+    const searchRes = await axios.get(searchUrl);
+
+    if (!searchRes.data.items || searchRes.data.items.length === 0) return [];
+
+    // Extract all the Video IDs from the search results
+    const videoIds = searchRes.data.items
+      .map((item) => item.id.videoId)
+      .join(",");
+
+    // STEP 2: Make a rapid second call to get the EXACT duration of these videos
+    const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${API_KEY}`;
+    const detailsRes = await axios.get(detailsUrl);
+
+    // STEP 3: Filter out Shorts.
+    // YouTube durations look like "PT3M45S" (3 mins 45 secs) or "PT45S" (45 secs).
+    // If it doesn't contain 'M' (Minutes) or 'H' (Hours), it is under 60 seconds (a Short).
+    const validVideos = detailsRes.data.items.filter((video) => {
+      const duration = video.contentDetails.duration;
+      return duration.includes("M") || duration.includes("H");
+    });
+
+    // Slice the array back down to the exact number requested and format it
+    return validVideos.slice(0, maxResults).map((item) => ({
+      id: item.id,
       title: item.snippet.title,
-      image: item.snippet.thumbnails.high.url, // ✅ Fixed key
-      artist: item.snippet.channelTitle, // ✅ Fixed key
-      stage: stageName, // ✅ Tagging the stage
+      image: item.snippet.thumbnails.high.url,
+      artist: item.snippet.channelTitle,
+      stage: stageName,
     }));
   } catch (error) {
     console.error("YouTube API Error:", error.message);
@@ -45,67 +69,55 @@ async function fetchYouTubeVideos(query, maxResults, stageName = "Match") {
   }
 }
 
+// @desc    Generate Playlist (Original Logic)
+// @route   GET /api/music/generate
 exports.generatePlaylist = async (req, res) => {
   const { mood, language, genre, type } = req.query;
 
   try {
     let searchQuery = "";
 
-    // --- APPLY THE PSYCHOLOGICAL LOGIC HERE ---
     if (type === "lift") {
-      let regulationPath = "uplifting boost"; // Default
-
+      let regulationPath = "uplifting boost";
       switch (mood) {
         case "Sad":
-          regulationPath = "uplifting calm to happy"; // 30% Sad → 40% Calm → 30% Happy
+          regulationPath = "uplifting calm to happy";
           break;
-        case "Energetic": // Tense/Angry
-          regulationPath = "calming to happy upbeat"; // 30% Intense → 40% Calm → 30% Happy
+        case "Energetic":
+          regulationPath = "calming to happy upbeat";
           break;
         case "Chill":
         case "Focused":
-          regulationPath = "calm to energetic wake up"; // 50% Calm → 50% Energetic
+          regulationPath = "calm to energetic wake up";
           break;
         case "Happy":
         case "Romantic":
-          regulationPath = "happy energetic party boost"; // 50% Happy → 50% Energetic
+          regulationPath = "happy energetic party boost";
           break;
       }
-      searchQuery = `${regulationPath} ${language} ${genre} music`;
+      searchQuery = `${regulationPath} ${language} ${genre}`;
     } else {
-      // "match" - Iso-Principle
-      searchQuery = `${mood} ${language} ${genre} music`;
+      searchQuery = `${mood} ${language} ${genre}`;
     }
 
-    // --- CALL YOUTUBE API ---
-    const youtubeRes = await axios.get(
-      `https://www.googleapis.com/youtube/v3/search`,
-      {
-        params: {
-          part: "snippet",
-          q: searchQuery,
-          maxResults: 15,
-          type: "video",
-          videoCategoryId: "10", // 10 is the Music category
-          key: process.env.YOUTUBE_API_KEY,
-        },
-      },
-    );
+    // Reuse our new bulletproof function to ensure no Shorts slip through here either!
+    const songs = await fetchYouTubeVideos(searchQuery, 15, "Match");
 
-    // Format the response for the frontend
-    const songs = youtubeRes.data.items.map((item) => ({
-      videoId: item.id.videoId,
-      title: item.snippet.title,
-      artist: item.snippet.channelTitle,
-      image: item.snippet.thumbnails.high.url,
+    // The older frontend component expects 'videoId' instead of 'id', so we map it back
+    const formattedSongs = songs.map((song) => ({
+      videoId: song.id,
+      title: song.title,
+      artist: song.artist,
+      image: song.image,
     }));
 
-    res.json(songs);
+    res.json(formattedSongs);
   } catch (err) {
     console.error("Music Generation Error:", err.message);
     res.status(500).json({ msg: "Failed to generate playlist" });
   }
 };
+
 // @desc    Generate Playlist (3-Stage Logic)
 // @route   POST /api/music/recommend
 exports.getRecommendation = async (req, res) => {
@@ -116,24 +128,18 @@ exports.getRecommendation = async (req, res) => {
 
   try {
     if (mode === "improve" || mode === "lift") {
-      // === STRATEGY: ISO-PRINCIPLE MOOD REGULATION (14 Songs Total) ===
       const targetMoods = TRANSITIONS[mood] || ["Happy", "Energetic"];
 
-      // Stage 1: Validate Current Emotion (3 songs)
       const v1 = await fetchYouTubeVideos(
         `${language} ${mood} ${genre}`,
         3,
         "Validation",
       );
-
-      // Stage 2: The Bridge / Transition (5 songs)
       const v2 = await fetchYouTubeVideos(
         `${language} ${targetMoods[0]} ${genre}`,
         5,
         "Transition",
       );
-
-      // Stage 3: The Target State (6 songs)
       const v3 = await fetchYouTubeVideos(
         `${language} ${targetMoods[1] || targetMoods[0]} ${genre}`,
         6,
@@ -142,7 +148,6 @@ exports.getRecommendation = async (req, res) => {
 
       videoResults = [...v1, ...v2, ...v3];
     } else {
-      // === STRATEGY: EXACT MATCH ===
       videoResults = await fetchYouTubeVideos(
         `${language} ${mood} ${genre}`,
         10,
@@ -164,7 +169,7 @@ exports.savePlaylist = async (req, res) => {
     const { name, inputs, tracks } = req.body;
 
     const newPlaylist = new Playlist({
-      user: req.user.id, // Comes from authMiddleware
+      user: req.user.id,
       name,
       inputs,
       tracks,
